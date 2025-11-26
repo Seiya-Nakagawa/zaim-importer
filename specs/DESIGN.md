@@ -53,6 +53,44 @@ graph LR
     1. OAuth 1.0a の署名を生成する（GAS上で計算）。
     2. `UrlFetchApp.fetch()` を使用して Zaim API (`https://api.zaim.net/v2/home/money/payment`) に POST リクエストを送る。
 
+### 3.3. 認証フロー
+
+Zaim APIとの連携には OAuth 1.0a を使用します。
+
+```mermaid
+sequenceDiagram
+    participant User as ブラウザ
+    participant GAS as GAS (OAuth.js)
+    participant Zaim as Zaim API
+
+    Note over User, Zaim: 【Step 0: 準備】
+    User->>GAS: printAuthUrl() を実行
+    GAS->>Zaim: リクエストトークンを要求 (setRequestTokenUrl)
+    Zaim-->>GAS: リクエストトークン (仮チケット) を発行
+    GAS-->>User: 認証用URL (Authorize URL) をログ表示
+
+    Note over User, Zaim: 【Step 1: ユーザー許可】
+    User->>Zaim: ブラウザで認証用URLにアクセス
+    Zaim->>User: 「許可しますか？」画面を表示
+    User->>Zaim: 「許可」ボタンをクリック
+
+    Note over User, Zaim: 【Step 2: コールバック】
+    Zaim->>GAS: GASのURLにリダイレクト (authCallback)<br>※ oauth_verifier (検証コード) 付き
+    GAS->>GAS: authCallback(request) が起動
+
+    Note over User, Zaim: 【Step 3: トークン交換】
+    GAS->>Zaim: 仮チケット + 検証コード を送信 (setAccessTokenUrl)
+    Zaim-->>GAS: アクセストークン (本物の鍵) を発行
+    GAS->>GAS: アクセストークンを保存 (PropertiesService)
+    GAS-->>User: 「認証成功」画面を表示
+
+    Note over User, Zaim: 【Step 4: API利用】
+    User->>GAS: main() を実行
+    GAS->>GAS: 保存されたトークンを読み込み
+    GAS->>Zaim: APIリクエスト (データ登録など)
+    Zaim-->>GAS: 処理結果 (OK)
+```
+
 ## 4. ファイル構成 (想定)
 
 GASエディタ上、または `clasp` で管理するファイル構成。
