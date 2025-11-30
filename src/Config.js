@@ -19,8 +19,7 @@ const SEARCH_START_INDEX = 0;
 const SEARCH_TARGET_DAYS_AGO = parseInt(SCRIPT_PROPERTIES.getProperty('SEARCH_TARGET_DAYS_AGO'), 10);
 
 // Gemini API Endpoint
-// プロパティ 'GEMINI_API_ENDPOINT' が設定されていればそれを使用
-const GEMINI_API_ENDPOINT = SCRIPT_PROPERTIES.getProperty('GEMINI_API_ENDPOINT');
+const GEMINI_API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=';
 const ZAIM_API_BASE_URL = 'https://api.zaim.net/v2';
 
 // -----------------------------------------------------------------------------
