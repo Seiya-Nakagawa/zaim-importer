@@ -4,16 +4,20 @@
 
 var ZaimClient = function() {
   this.service = getService();
-  this.baseUrl = 'https://api.zaim.net/v2';
+  this.baseUrl = ZAIM_API_BASE_URL;
+  this.categoriesCache = null;
 };
 
 /**
  * 支払いデータを登録する
+ * Zaim API (POST /home/money/payment) を呼び出して家計簿データを登録します
+ *
  * @param {Object} paymentData - 支払いデータ
  *   - date: 日付 (YYYY-MM-DD形式)
  *   - amount: 金額 (数値)
  *   - shop: 店舗名 (文字列)
- *   - category: カテゴリ (オプション、将来実装予定)
+ *   - categoryId: カテゴリID (数値)
+ *   - genreId: ジャンルID (数値)
  * @return {Object} APIレスポンス
  */
 ZaimClient.prototype.registerPayment = function(paymentData) {
@@ -29,16 +33,22 @@ ZaimClient.prototype.registerPayment = function(paymentData) {
 
   var url = this.baseUrl + '/home/money/payment';
 
+  // コメントの作成
+  var comment = 'Created by GAS';
+  if (paymentData.paymentSource) {
+    comment += ' (' + paymentData.paymentSource + ')';
+  }
+
   // 送信データの構築
-  // category_id, genre_id は一旦仮の値を使用(後でマッピング機能を追加予定)
+  // mapping=1 を指定することで、category_id/genre_id を優先して登録できる
   var payload = {
     mapping: 1, // 1: 入力されたカテゴリID等を優先
-    category_id: 101, // 仮: 食費
-    genre_id: 10101, // 仮: 食料品
+    category_id: paymentData.categoryId || 101, // デフォルト: 食費
+    genre_id: paymentData.genreId || 10101,     // デフォルト: 食料品
     amount: paymentData.amount,
     date: paymentData.date,
     place: paymentData.shop,
-    comment: 'Created by GAS'
+    comment: comment
   };
 
   var options = {
@@ -74,11 +84,97 @@ ZaimClient.prototype.registerPayment = function(paymentData) {
 };
 
 /**
- * カテゴリ一覧を取得する(デバッグ・確認用)
+ * 家計簿データを取得する
+ * @param {Object} params - 検索パラメータ (start_date, end_date, limitなど)
+ * @return {Object} APIレスポンス { money: [...] }
+ */
+ZaimClient.prototype.getMoney = function(params) {
+  // 認証チェック
+  if (!this.service.hasAccess()) {
+    throw new Error('Zaimの認証がされていません。');
+  }
+
+  var url = this.baseUrl + '/home/money';
+
+  // クエリパラメータの構築
+  if (params) {
+    var queryString = Object.keys(params).map(function(key) {
+      return key + '=' + encodeURIComponent(params[key]);
+    }).join('&');
+    url += '?' + queryString;
+  }
+
+  var options = {
+    method: 'get',
+    muteHttpExceptions: true
+  };
+
+  try {
+    console.log('Zaimデータ取得: ' + url);
+    var response = this.service.fetch(url, options);
+    var responseCode = response.getResponseCode();
+    var result = JSON.parse(response.getContentText());
+
+    if (responseCode === 200) {
+      return result;
+    } else {
+      throw new Error('Failed to get money: ' + responseCode);
+    }
+  } catch (e) {
+    console.error('取得エラー: ' + e.message);
+    throw e;
+  }
+};
+
+/**
+ * 家計簿データを削除する
+ * @param {number} moneyId - 削除するデータのID
+ * @return {boolean} 成功したかどうか
+ */
+ZaimClient.prototype.deletePayment = function(moneyId) {
+  // 認証チェック
+  if (!this.service.hasAccess()) {
+    throw new Error('Zaimの認証がされていません。');
+  }
+
+  var url = this.baseUrl + '/home/money/payment/' + moneyId;
+
+  var options = {
+    method: 'delete',
+    muteHttpExceptions: true
+  };
+
+  try {
+    console.log('Zaimデータ削除: ' + moneyId);
+    var response = this.service.fetch(url, options);
+    var responseCode = response.getResponseCode();
+    var result = JSON.parse(response.getContentText());
+
+    if (responseCode === 200) {
+      console.log('✅ 削除成功: ' + moneyId);
+      return true;
+    } else {
+      console.error('❌ 削除失敗: ' + JSON.stringify(result));
+      return false;
+    }
+  } catch (e) {
+    console.error('削除エラー: ' + e.message);
+    return false;
+  }
+};
+
+/**
+ * カテゴリ一覧を取得する
  * Zaimに登録されているカテゴリとジャンルの一覧を取得します
+ * ※ 主に設定ファイル(Config.js)作成時のID確認用です
  * @return {Object} カテゴリ一覧
  */
 ZaimClient.prototype.getCategories = function() {
+  // キャッシュがあればそれを返す
+  if (this.categoriesCache) {
+    return this.categoriesCache;
+  }
+
   // 認証チェック
   if (!this.service.hasAccess()) {
     throw new Error('Zaimの認証がされていません。printAuthUrl()を実行して認証してください。');
@@ -104,7 +200,10 @@ ZaimClient.prototype.getCategories = function() {
 
     if (responseCode === 200) {
       console.log('✅ カテゴリ取得成功');
-      console.log(JSON.stringify(result, null, 2));
+      // console.log(JSON.stringify(result, null, 2)); // ログが多すぎるのでコメントアウト
+
+      // キャッシュに保存
+      this.categoriesCache = result;
       return result;
     } else {
       console.error('❌ カテゴリ取得失敗 (HTTP ' + responseCode + '): ' + JSON.stringify(result));
