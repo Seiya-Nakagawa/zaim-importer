@@ -81,6 +81,11 @@ function callGeminiApi(prompt) {
     return null;
   }
 
+  if (!GEMINI_API_ENDPOINT) {
+    console.error("GEMINI_API_ENDPOINT is not set in Script Properties.");
+    return null;
+  }
+
   var url = GEMINI_API_ENDPOINT + apiKey;
 
   // リクエストペイロードの作成

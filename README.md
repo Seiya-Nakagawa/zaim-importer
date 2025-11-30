@@ -36,6 +36,7 @@ GASエディタの「プロジェクトの設定」>「スクリプト プロパ
 | `ZAIM_CONSUMER_KEY` | Zaim Developersで取得した Consumer Key |
 | `ZAIM_CONSUMER_SECRET` | Zaim Developersで取得した Consumer Secret |
 | `GEMINI_API_KEY` | Google AI Studioで取得した Gemini API Key |
+| `GEMINI_API_ENDPOINT` | Gemini APIのエンドポイントURL（例: `https://...:generateContent?key=`） |
 | `SEARCH_TARGET_DAYS_AGO` | 何日前までのメールを検索対象とするか（例: `3`） |
 
 ### 4. Zaim 認証 (OAuth)
