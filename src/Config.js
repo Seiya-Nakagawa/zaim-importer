@@ -20,7 +20,23 @@ const SEARCH_TARGET_DAYS_AGO = parseInt(SCRIPT_PROPERTIES.getProperty('SEARCH_TA
 
 // Gemini API Endpoint
 const GEMINI_API_ENDPOINT = SCRIPT_PROPERTIES.getProperty('GEMINI_API_ENDPOINT');
+// Gemini API Rate Limit対策の待機時間(ms)
+const GEMINI_API_WAIT_MS = 5000;
+// Gemini API パラメータ
+const GEMINI_PARAM_TEMPERATURE = 0.0;
+const GEMINI_PARAM_MAX_TOKENS = 20;
+
 const ZAIM_API_BASE_URL = 'https://api.zaim.net/v2';
+// Zaim API Rate Limit対策の待機時間(ms)
+const ZAIM_API_WAIT_MS = 1000;
+const ZAIM_DELETE_WAIT_MS = 500;
+// Zaimデータ取得時の件数上限
+const ZAIM_SEARCH_LIMIT = 100;
+// Zaim登録時のデフォルトカテゴリ・ジャンル（食費・食料品）
+const ZAIM_DEFAULT_CATEGORY_ID = 101;
+const ZAIM_DEFAULT_GENRE_ID = 10101;
+// Zaim登録時のコメントプレフィックス
+const ZAIM_COMMENT_PREFIX = 'Created by GAS';
 
 // -----------------------------------------------------------------------------
 // メール検索設定

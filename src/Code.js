@@ -62,7 +62,7 @@ function main() {
       // 登録処理 (ZaimClient.js)
       zaim.registerPayment(item);
       // APIレート制限考慮のため少し待機
-      Utilities.sleep(1000);
+      Utilities.sleep(ZAIM_API_WAIT_MS);
     } catch (e) {
       console.error('登録失敗: ' + JSON.stringify(item) + ' Error: ' + e.message);
     }
@@ -178,7 +178,7 @@ function deleteGasPayments(daysAgo) {
     mapping: 1,
     start_date: Utilities.formatDate(startDate, Session.getScriptTimeZone(), 'yyyy-MM-dd'),
     end_date: Utilities.formatDate(endDate, Session.getScriptTimeZone(), 'yyyy-MM-dd'),
-    limit: 100 // 一度の取得件数上限
+    limit: ZAIM_SEARCH_LIMIT // 一度の取得件数上限
   };
 
   console.log('削除対象データの検索開始: ' + params.start_date + ' 〜 ' + params.end_date);
@@ -194,14 +194,14 @@ function deleteGasPayments(daysAgo) {
 
   data.money.forEach(function(item) {
     // コメントに "Created by GAS" が含まれているかチェック
-    if (item.comment && item.comment.indexOf('Created by GAS') !== -1) {
+    if (item.comment && item.comment.indexOf(ZAIM_COMMENT_PREFIX) !== -1) {
       console.log('削除対象発見: ' + item.date + ' ' + item.place + ' ' + item.amount + '円 (ID: ' + item.id + ')');
 
       // 削除実行
       if (zaim.deletePayment(item.id)) {
         deleteCount++;
         // APIレート制限考慮
-        Utilities.sleep(500);
+        Utilities.sleep(ZAIM_DELETE_WAIT_MS);
       }
     }
   });

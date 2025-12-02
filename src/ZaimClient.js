@@ -34,7 +34,7 @@ ZaimClient.prototype.registerPayment = function(paymentData) {
   var url = this.baseUrl + '/home/money/payment';
 
   // コメントの作成
-  var comment = 'Created by GAS';
+  var comment = ZAIM_COMMENT_PREFIX;
   if (paymentData.paymentSource) {
     comment += ' (' + paymentData.paymentSource + ')';
   }
@@ -43,8 +43,8 @@ ZaimClient.prototype.registerPayment = function(paymentData) {
   // mapping=1 を指定することで、category_id/genre_id を優先して登録できる
   var payload = {
     mapping: 1, // 1: 入力されたカテゴリID等を優先
-    category_id: paymentData.categoryId || 101, // デフォルト: 食費
-    genre_id: paymentData.genreId || 10101,     // デフォルト: 食料品
+    category_id: paymentData.categoryId || ZAIM_DEFAULT_CATEGORY_ID, // デフォルト: 食費
+    genre_id: paymentData.genreId || ZAIM_DEFAULT_GENRE_ID,     // デフォルト: 食料品
     amount: paymentData.amount,
     date: paymentData.date,
     place: paymentData.shop,

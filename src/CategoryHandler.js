@@ -100,8 +100,8 @@ function callGeminiApi(prompt) {
       }
     ],
     "generationConfig": {
-      "temperature": 0.0,
-      "maxOutputTokens": 20
+      "temperature": GEMINI_PARAM_TEMPERATURE,
+      "maxOutputTokens": GEMINI_PARAM_MAX_TOKENS
     }
   };
 
@@ -113,6 +113,9 @@ function callGeminiApi(prompt) {
   };
 
   try {
+    // Rate Limit対策: 1分間に15回の上限があるため、待機する
+    Utilities.sleep(GEMINI_API_WAIT_MS);
+
     // 1. APIにリクエストを送信
     var response = UrlFetchApp.fetch(url, options);
 
