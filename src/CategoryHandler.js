@@ -18,12 +18,22 @@ function getCategory(shopName) {
   var shopList = Object.keys(SHOP_CATEGORY_MAP);
   for (var i = 0; i < shopList.length; i++) {
     if (shopName.indexOf(shopList[i]) != -1) {
-      var categoryName = SHOP_CATEGORY_MAP[shopList[i]];
-      // マッピングされたカテゴリ名からIDを取得
-      if (CATEGORY_MAP[categoryName]) {
+      var mapValue = SHOP_CATEGORY_MAP[shopList[i]];
+
+      // ID直接指定の場合
+      if (mapValue.categoryId) {
+        return {
+          categoryId: mapValue.categoryId,
+          genreId: mapValue.genreId
+        };
+      }
+
+      // 旧互換性: 文字列でカテゴリ名が指定されている場合（念のため残す）
+      var categoryName = (typeof mapValue === 'string') ? mapValue : mapValue.category;
+      if (categoryName && CATEGORY_MAP[categoryName]) {
         return {
           categoryId: CATEGORY_MAP[categoryName].id,
-          genreId: CATEGORY_MAP[categoryName].genreId
+          genreId: mapValue.genreId ? mapValue.genreId : CATEGORY_MAP[categoryName].genreId
         };
       }
     }
@@ -33,36 +43,99 @@ function getCategory(shopName) {
   // 未知の店名については生成AI(Gemini)に判断させる
   console.log('リストにないのでGeminiに問い合わせ: ' + shopName);
 
-  // Config.js の CATEGORY_MAP から "ID: カテゴリ名" のリストを作成
-  var options = [];
-  var keys = Object.keys(CATEGORY_MAP);
-  for (var i = 0; i < keys.length; i++) {
-    var key = keys[i];
-    var id = CATEGORY_MAP[key].id;
-    options.push(id + ":" + key);
+  // ZAIM_GENRES から詳細なカテゴリ・ジャンルリストを作成
+  var genreOptions = [];
+  var categoryIds = Object.keys(ZAIM_GENRES);
+  for (var i = 0; i < categoryIds.length; i++) {
+    var catId = parseInt(categoryIds[i], 10);
+    var catInfo = ZAIM_GENRES[catId];
+    var genreIds = Object.keys(catInfo.genres);
+    for (var j = 0; j < genreIds.length; j++) {
+      var genreId = parseInt(genreIds[j], 10);
+      var genreName = catInfo.genres[genreId];
+      genreOptions.push(genreId + ":" + catInfo.name + "-" + genreName);
+    }
   }
-  var optionsStr = options.join(', ');
+  var genreOptionsStr = genreOptions.join(', ');
 
-  var prompt = "店名「" + shopName + "」の家計簿上の適切なカテゴリを、次の中から1つだけ選んで回答してください。回答はカテゴリID（数値）のみを返してください。もし該当しそうなカテゴリがない場合は、「199」（その他）を返してください。\n" +
-               "選択肢: [" + optionsStr + "]";
+  var prompt = "店名「" + shopName + "」の家計簿上の適切なカテゴリとジャンルを、次の中から選んで回答してください。\n" +
+               "回答は「カテゴリID,ジャンルID」の形式で返してください（例: 101,10103）。\n" +
+               "- 適切なカテゴリもジャンルも特定できる場合: そのカテゴリIDとジャンルIDを返す\n" +
+               "- カテゴリは特定できるがジャンルが特定できない場合: カテゴリIDと0を返す（例: 101,0）\n" +
+               "- カテゴリもジャンルも特定できない場合: 199,0を返す\n" +
+               "選択肢: [" + genreOptionsStr + "]";
 
-  var resultId = callGeminiApi(prompt);
+  var result = callGeminiApi(prompt);
 
-  // IDからカテゴリ情報を取得して返す
-  if (resultId) {
-    // 数値として比較するために変換（Geminiが文字列で返す可能性があるため）
-    var targetId = parseInt(resultId, 10);
-    for (var i = 0; i < keys.length; i++) {
-      if (CATEGORY_MAP[keys[i]].id === targetId) {
+  // 結果を解析
+  if (result) {
+    var parts = result.split(',');
+    if (parts.length === 2) {
+      var targetCategoryId = parseInt(parts[0].trim(), 10);
+      var targetGenreId = parseInt(parts[1].trim(), 10);
+
+      // カテゴリIDが「その他」(199)の場合
+      if (targetCategoryId === 199) {
+        console.log('Geminiの判定: カテゴリ特定不可 → デフォルト（その他）を使用');
         return {
-          categoryId: CATEGORY_MAP[keys[i]].id,
-          genreId: CATEGORY_MAP[keys[i]].genreId
+          categoryId: CATEGORY_MAP['その他'].id,
+          genreId: CATEGORY_MAP['その他'].genreId
         };
+      }
+
+      // ジャンルIDが0の場合、CATEGORY_MAPのgenreIdを使用
+      if (targetGenreId === 0) {
+        // CATEGORY_MAPからカテゴリ名を検索
+        var keys = Object.keys(CATEGORY_MAP);
+        for (var i = 0; i < keys.length; i++) {
+          if (CATEGORY_MAP[keys[i]].id === targetCategoryId) {
+            var categoryName = keys[i];
+            console.log('Geminiの判定: カテゴリは特定(' + categoryName + ')、ジャンル不明 → CATEGORY_MAPのgenreIdを使用');
+            return {
+              categoryId: targetCategoryId,
+              genreId: CATEGORY_MAP[categoryName].genreId
+            };
+          }
+        }
+      }
+
+      // カテゴリとジャンルの両方が特定できた場合
+      // ZAIM_GENRESで該当するジャンルが存在するか確認
+      for (var i = 0; i < categoryIds.length; i++) {
+        var catId = parseInt(categoryIds[i], 10);
+        if (catId === targetCategoryId) {
+          var catInfo = ZAIM_GENRES[catId];
+          var genreIds = Object.keys(catInfo.genres);
+
+          for (var j = 0; j < genreIds.length; j++) {
+            var genreId = parseInt(genreIds[j], 10);
+            if (genreId === targetGenreId) {
+              console.log('Geminiの判定: ' + catInfo.name + ' - ' + catInfo.genres[genreId] + ' (categoryId: ' + catId + ', genreId: ' + genreId + ')');
+              return {
+                categoryId: catId,
+                genreId: genreId
+              };
+            }
+          }
+
+          // カテゴリは存在するがジャンルが見つからない場合、CATEGORY_MAPのgenreIdを使用
+          var keys = Object.keys(CATEGORY_MAP);
+          for (var k = 0; k < keys.length; k++) {
+            if (CATEGORY_MAP[keys[k]].id === targetCategoryId) {
+              console.log('Geminiの判定: カテゴリID ' + targetCategoryId + ' は有効だが、ジャンルID ' + targetGenreId + ' が無効 → CATEGORY_MAPのgenreIdを使用');
+              return {
+                categoryId: targetCategoryId,
+                genreId: CATEGORY_MAP[keys[k]].genreId
+              };
+            }
+          }
+        }
       }
     }
   }
 
-  // デフォルト: その他
+  // デフォルト: その他 - その他
+  console.log('Geminiの応答を解釈できなかったため、デフォルト（その他）を使用');
   return {
     categoryId: CATEGORY_MAP['その他'].id,
     genreId: CATEGORY_MAP['その他'].genreId

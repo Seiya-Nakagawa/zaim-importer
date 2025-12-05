@@ -137,16 +137,16 @@ function searchMails(key, targetDateStr) {
  */
 function checkCategories() {
   var zaim = new ZaimClient();
-  var data = zaim.getCategories();
+  var catData = zaim.getCategories();
+  var genData = zaim.getGenres();
 
-  console.log('--- カテゴリ一覧 ---');
-  if (data && data.categories) {
-    data.categories.forEach(function(cat) {
+  console.log('--- カテゴリ・ジャンル一覧 ---');
+  if (catData && catData.categories) {
+    catData.categories.forEach(function(cat) {
       console.log('カテゴリ: ' + cat.name + ' (ID: ' + cat.id + ')');
 
-      // このカテゴリに属するジャンルを表示
-      if (data.genres) {
-        var genres = data.genres.filter(function(g) {
+      if (genData && genData.genres) {
+        var genres = genData.genres.filter(function(g) {
           return g.category_id === cat.id;
         });
 
@@ -167,7 +167,7 @@ function deleteGasPayments(daysAgo) {
   var zaim = new ZaimClient();
 
   // 引数がなければ Config.js の設定値を使用
-  var targetDays = daysAgo || SEARCH_TARGET_DAYS_AGO;
+  var targetDays = daysAgo || DELETE_TARGET_DAYS_AGO;
 
   // 検索期間の設定
   var endDate = new Date();

@@ -214,3 +214,39 @@ ZaimClient.prototype.getCategories = function() {
     throw e;
   }
 };
+
+/**
+ * ジャンル一覧を取得する
+ * @return {Object} ジャンル一覧 { genres: [...] }
+ */
+ZaimClient.prototype.getGenres = function() {
+  // 認証チェック
+  if (!this.service.hasAccess()) {
+    throw new Error('Zaimの認証がされていません。');
+  }
+
+  var url = this.baseUrl + '/home/genre';
+
+  var options = {
+    method: 'get',
+    muteHttpExceptions: true
+  };
+
+  try {
+    console.log('ジャンル取得: ' + url);
+    var response = this.service.fetch(url, options);
+    var responseCode = response.getResponseCode();
+    var result = JSON.parse(response.getContentText());
+
+    if (responseCode === 200) {
+      console.log('✅ ジャンル取得成功');
+      return result;
+    } else {
+      console.error('❌ ジャンル取得失敗: ' + JSON.stringify(result));
+      throw new Error('Failed to get genres');
+    }
+  } catch (e) {
+    console.error('ジャンル取得エラー: ' + e.message);
+    throw e;
+  }
+};
