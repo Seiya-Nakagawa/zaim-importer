@@ -69,7 +69,7 @@ const PAYMENT_MAILTITLE_MAP = {
 // AI判定よりも優先されます。頻繁に利用する店やAIが誤判定する店を登録します。
 // 値は { categoryId: カテゴリID, genreId: ジャンルID } のオブジェクトで指定します。
 const SHOP_CATEGORY_MAP = {
-  'Jリーグ': { categoryId: 108, genreId: 10802 }, // エンタメ - イベント
+  'Ｊリーグ': { categoryId: 108, genreId: 10802 }, // エンタメ - イベント
   'ユニクロ': { categoryId: 111, genreId: 11101 }, // 美容・衣服 - 洋服
   'でいから': { categoryId: 101, genreId: 10105 }, // 食費 - 食料品
   'そうてつローゼン': { categoryId: 101, genreId: 10101 }, // 食費 - 食料品
@@ -79,6 +79,8 @@ const SHOP_CATEGORY_MAP = {
   'ｵﾌﾛﾉｵｳｻﾏｴﾋﾞﾅﾃﾝ': { categoryId: 108, genreId: 10801 }, // エンタメ - レジャー
   'エルピオ': { categoryId: 105, genreId: 10503 }, // 水道・光熱 - 電気料金
   'ｽｽﾞﾗﾝ': { categoryId: 101, genreId: 10105 }, // 食費 - 食料品
+  'ﾒｶﾞﾄﾞﾝｷﾎｰﾃ': { categoryId: 199, genreId: 19999 }, // その他	※食費と日用雑貨が両方あるため、手動でカテゴリ設定
+  '日本郵便': { categoryId: 104, genreId: 10406 }, // 通信 - 切手・はがき
 };
 
 // カテゴリ名とZaimのID/ジャンルIDのマッピング
