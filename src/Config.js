@@ -81,6 +81,10 @@ const SHOP_CATEGORY_MAP = {
   'ｽｽﾞﾗﾝ': { categoryId: 101, genreId: 10105 }, // 食費 - 食料品
   'ﾒｶﾞﾄﾞﾝｷﾎｰﾃ': { categoryId: 199, genreId: 19999 }, // その他	※食費と日用雑貨が両方あるため、手動でカテゴリ設定
   '日本郵便': { categoryId: 104, genreId: 10406 }, // 通信 - 切手・はがき
+  'ｺｽﾓｾｷﾕ': { categoryId: 112, genreId: 11201 }, // クルマ - ガソリン
+  '楽天ブックス': { categoryId: 199, genreId: 19904 }, // その他 - 立替金
+  'ｼｮﾃﾝ': { categoryId: 199, genreId: 19999 }, // その他 - その他
+  'APPLE COM BILL': { categoryId: 104, genreId: 10401 }, // 通信 - 携帯電話料金
 };
 
 // カテゴリ名とZaimのID/ジャンルIDのマッピング
