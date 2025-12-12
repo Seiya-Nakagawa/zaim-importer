@@ -85,6 +85,7 @@ const SHOP_CATEGORY_MAP = {
   '楽天ブックス': { categoryId: 199, genreId: 19904 }, // その他 - 立替金
   'ｼｮﾃﾝ': { categoryId: 199, genreId: 19999 }, // その他 - その他
   'APPLE COM BILL': { categoryId: 104, genreId: 10401 }, // 通信 - 携帯電話料金
+  'ﾋﾞﾖｳｼﾂ': { categoryId: 111, genreId: 11105 }, // 美容・衣服 - 美容院
 };
 
 // カテゴリ名とZaimのID/ジャンルIDのマッピング
