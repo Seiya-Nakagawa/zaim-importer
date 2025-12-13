@@ -5,43 +5,123 @@
 
 /**
  * メイン関数
- * 1. 検索対象の日付を取得
+ * 1. 「家計簿/未処理」ラベルのメールを取得
  * 2. 設定されたメールタイトルごとにメールを検索・解析
  * 3. 店名からカテゴリを自動判定（Gemini連携）
  * 4. Zaim APIへ支払情報を登録
+ * 5. 処理済みメールのラベルを「家計簿/処理済」に変更
  */
 function main() {
-  // 1. メール取得対象の日付を取得(YYYY/MM/DD)
-  // Config.js の SEARCH_TARGET_DAYS_AGO (またはプロパティ) で指定された日数前を基準にする
-  var targetDateStr = getDateStr(SEARCH_TARGET_DAYS_AGO);
+  // 1. Gmailラベルを取得（なければ作成）
+  var unprocessedLabel = GmailApp.getUserLabelByName(GMAIL_LABEL_UNPROCESSED);
+  if (!unprocessedLabel) {
+    console.log('ラベル「' + GMAIL_LABEL_UNPROCESSED + '」が見つかりません。処理を終了します。');
+    return;
+  }
 
-  // 全ての結果を格納する配列を用意
+  var processedLabel = GmailApp.getUserLabelByName(GMAIL_LABEL_PROCESSED);
+  if (!processedLabel) {
+    processedLabel = GmailApp.createLabel(GMAIL_LABEL_PROCESSED);
+    console.log('ラベル「' + GMAIL_LABEL_PROCESSED + '」を作成しました。');
+  }
+
+  // 2. 未処理ラベルの付いたスレッドを取得
+  var threads = unprocessedLabel.getThreads(0, SEARCH_MAX_COUNT);
+  console.log('未処理メール件数: ' + threads.length);
+
+  if (threads.length === 0) {
+    console.log('処理対象のメールがありません。');
+    return;
+  }
+
+  // 全ての結果を格納する配列を用意（メッセージ情報も含める）
   var allResults = [];
+  // 処理済みにマークするスレッドを記録
+  var processedThreads = [];
 
-  // 2. 対象のメールタイトルで検索
-  // Config.js の PAYMENT_MAILTITLE_MAP に定義された各メールタイプについて処理
-  var keys = Object.keys(PAYMENT_MAILTITLE_MAP);
-  keys.forEach(function(key) {
-    // メール検索と解析を実行 (Parsers.js の対応するパーサーが呼ばれる)
-    var result = searchMails(key, targetDateStr);
-    console.log('検索結果: ' + JSON.stringify(result));
+  // 3. 各スレッドを処理
+  threads.forEach(function(thread) {
+    var messages = thread.getMessages();
+    var threadHasData = false;
 
-    // 取得した結果を全体の配列に結合（追加）する
-    if (result.length > 0) {
-      // 支払い元情報を付与
-      var sourceName = PAYMENT_MAILTITLE_MAP[key].name;
-      result.forEach(function(item) {
-        item.paymentSource = sourceName;
-      });
+    messages.forEach(function(message) {
+      // メールの件名を取得
+      var subject = message.getSubject();
 
-      allResults = allResults.concat(result);
+      // 設定されたメールタイトルと照合
+      var keys = Object.keys(PAYMENT_MAILTITLE_MAP);
+      var matched = false;
+
+      for (var i = 0; i < keys.length; i++) {
+        var key = keys[i];
+        var expectedSubject = PAYMENT_MAILTITLE_MAP[key].subj;
+
+        // 件名が一致するか確認（部分一致）
+        if (subject.indexOf(expectedSubject) !== -1) {
+          matched = true;
+          console.log('件名一致: ' + subject + ' (タイプ: ' + key + ')');
+
+          // メール検索と解析を実行
+          var result = searchMailsFromMessage(message, key);
+
+          if (result.length > 0) {
+            // 支払い元情報を付与
+            var sourceName = PAYMENT_MAILTITLE_MAP[key].name;
+            result.forEach(function(item) {
+              item.paymentSource = sourceName;
+              item.message = message; // メッセージ情報を保持（後でラベル変更に使用）
+              item.thread = thread; // スレッド情報を保持（後でラベル変更に使用）
+            });
+
+            allResults = allResults.concat(result);
+            threadHasData = true;
+
+            // ログ出力用にメッセージ・スレッド情報を除外したコピーを作成
+            var logResult = result.map(function(item) {
+              var logItem = {};
+              for (var prop in item) {
+                if (prop !== 'message' && prop !== 'thread') {
+                  logItem[prop] = item[prop];
+                }
+              }
+              return logItem;
+            });
+            console.log('検索結果: ' + JSON.stringify(logResult));
+          }
+
+          break;
+        }
+      }
+
+      if (!matched) {
+        console.log('未対応のメールタイトル: ' + subject);
+      }
+    });
+
+    // データが取得できたスレッドを記録
+    if (threadHasData) {
+      processedThreads.push(thread);
     }
   });
 
-  // 全検索結果を出力
-  console.log('全検索結果: ' + JSON.stringify(allResults));
+  // 全検索結果を出力（メッセージ・スレッド情報は除外）
+  var logResults = allResults.map(function(item) {
+    var logItem = {};
+    for (var prop in item) {
+      if (prop !== 'message' && prop !== 'thread') {
+        logItem[prop] = item[prop];
+      }
+    }
+    return logItem;
+  });
+  console.log('全検索結果: ' + JSON.stringify(logResults));
 
-  // 3. カテゴリ判定を実行
+  if (allResults.length === 0) {
+    console.log('処理対象のデータがありません。');
+    return;
+  }
+
+  // 4. カテゴリ判定を実行
   // 店名(shop)を元に、ZaimのカテゴリIDとジャンルIDを決定する
   allResults.forEach(function(item) {
     // CategoryHandler.js の関数を呼び出す
@@ -52,21 +132,61 @@ function main() {
     item.genreId = categoryInfo.genreId;
   });
 
-  // カテゴリ付与後:
-  console.log('カテゴリ付与後: ' + JSON.stringify(allResults));
+  // カテゴリ付与後（メッセージ・スレッド情報は除外）:
+  var logResultsAfterCategory = allResults.map(function(item) {
+    var logItem = {};
+    for (var prop in item) {
+      if (prop !== 'message' && prop !== 'thread') {
+        logItem[prop] = item[prop];
+      }
+    }
+    return logItem;
+  });
+  console.log('カテゴリ付与後: ' + JSON.stringify(logResultsAfterCategory));
 
-  // 4. Zaimに登録
+  // 5. Zaimに登録
   var zaim = new ZaimClient();
+  var successCount = 0;
+  var failCount = 0;
+
   allResults.forEach(function(item) {
     try {
       // 登録処理 (ZaimClient.js)
       zaim.registerPayment(item);
+      successCount++;
       // APIレート制限考慮のため少し待機
       Utilities.sleep(ZAIM_API_WAIT_MS);
     } catch (e) {
+      failCount++;
       console.error('登録失敗: ' + JSON.stringify(item) + ' Error: ' + e.message);
     }
   });
+
+  console.log('Zaim登録結果: 成功=' + successCount + ', 失敗=' + failCount);
+
+  // 6. 処理済みスレッドのラベルを変更（重複を排除）
+  var labelChangedCount = 0;
+  var processedThreadIds = {};
+
+  processedThreads.forEach(function(thread) {
+    var threadId = thread.getId();
+    // 既に処理済みのスレッドはスキップ
+    if (processedThreadIds[threadId]) {
+      return;
+    }
+    processedThreadIds[threadId] = true;
+
+    try {
+      thread.removeLabel(unprocessedLabel);
+      thread.addLabel(processedLabel);
+      labelChangedCount++;
+      console.log('ラベル変更: スレッドID=' + threadId);
+    } catch (e) {
+      console.error('ラベル変更失敗: スレッドID=' + threadId + ' Error: ' + e.message);
+    }
+  });
+
+  console.log('ラベル変更完了: ' + labelChangedCount + '件のスレッドを処理済みに変更しました。');
 }
 
 /**
@@ -82,51 +202,37 @@ function getDateStr(daysAgo) {
 }
 
 /**
- * メールを検索し、解析結果をログ出力する
+ * メッセージから解析結果を取得する
+ * @param {GmailMessage} message - Gmailメッセージオブジェクト
  * @param {string} key - PAYMENT_MAILTITLE_MAPのキー
- * @param {string} targetDateStr - 検索対象の日付文字列(YYYY/MM/DD)
+ * @return {Array} 解析結果の配列
  */
-function searchMails(key, targetDateStr) {
+function searchMailsFromMessage(message, key) {
   var results = [];
-  // 検索するメールの件名を取得
-  var subject = PAYMENT_MAILTITLE_MAP[key].subj;
-  console.log('件名: ' + subject);
 
-  // 検索条件を組み立てる
-  var query = 'subject:' + subject + ' after:' + targetDateStr;
-  console.log('検索条件: ' + query);
+  // 本文を取得
+  var body = message.getPlainBody();
+  console.log('メール本文: ' + body.substring(0, 200) + '...'); // 最初の200文字のみログ出力
 
-  // 検索を実行
-  var threads = GmailApp.search(query, SEARCH_START_INDEX, SEARCH_MAX_COUNT);
-  console.log('検索結果件数: ' + threads.length);
+  // メール本文を解析
+  var data = Parsers[key](body);
+  console.log('解析結果: ' + JSON.stringify(data));
 
-  // 各スレッド・メッセージを処理
-  threads.forEach(function(thread) {
-    var messages = thread.getMessages();
+  // 解析結果を結果配列に追加
+  if (data) {
+    // パーサーが配列を返す場合（楽天カードのまとめ版など）と
+    // 単一オブジェクトを返す場合の両方に対応
+    var items = Array.isArray(data) ? data : [data];
 
-    messages.forEach(function(message){
-      // 本文を取得
-      var body = message.getPlainBody();
-      console.log('メール本文: ' + body);
-
-      // メール本文を解析
-      var data = Parsers[key](body);
-      console.log('解析結果: ' + JSON.stringify(data));
-
-      // 解析結果を結果配列に追加
-      if (data) {
-        // パーサーが配列を返す場合（楽天カードのまとめ版など）と
-        // 単一オブジェクトを返す場合の両方に対応
-        var items = Array.isArray(data) ? data : [data];
-
-        items.forEach(function(item) {
-          // パーサーが日付を返していればそれを使い、なければ検索対象日を使う
-          item.date = item.date || targetDateStr;
-          results.push(item);
-        });
+    items.forEach(function(item) {
+      // パーサーが日付を返していればそれを使い、なければメッセージの日付を使う
+      if (!item.date) {
+        var messageDate = message.getDate();
+        item.date = Utilities.formatDate(messageDate, Session.getScriptTimeZone(), 'yyyy-MM-dd');
       }
-    })
-  })
+      results.push(item);
+    });
+  }
 
   return results;
 }

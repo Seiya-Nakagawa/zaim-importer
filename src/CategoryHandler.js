@@ -58,21 +58,54 @@ function getCategory(shopName) {
   }
   var genreOptionsStr = genreOptions.join(', ');
 
-  var prompt = "店名「" + shopName + "」の家計簿上の適切なカテゴリとジャンルを、次の中から選んで回答してください。\n" +
-               "回答は「カテゴリID,ジャンルID」の形式で返してください（例: 101,10103）。\n" +
-               "- 適切なカテゴリもジャンルも特定できる場合: そのカテゴリIDとジャンルIDを返す\n" +
+  var prompt = "店名「" + shopName + "」の家計簿上の適切なカテゴリとジャンルを、次の中から選んで回答してください。\n\n" +
+               "【重要】回答は必ず「カテゴリID,ジャンルID」の形式のみで返してください。説明文や余分な文字は一切含めないでください。\n" +
+               "例: 101,10103\n\n" +
+               "ルール:\n" +
+               "- 適切なカテゴリもジャンルも特定できる場合: そのカテゴリIDとジャンルIDを返す（例: 101,10103）\n" +
                "- カテゴリは特定できるがジャンルが特定できない場合: カテゴリIDと0を返す（例: 101,0）\n" +
-               "- カテゴリもジャンルも特定できない場合: 199,0を返す\n" +
-               "選択肢: [" + genreOptionsStr + "]";
+               "- カテゴリもジャンルも特定できない場合: 199,19999を返す\n\n" +
+               "選択肢: " + genreOptionsStr + "\n\n" +
+               "回答（カテゴリID,ジャンルID のみ）:";
 
   var result = callGeminiApi(prompt);
+  console.log('Gemini 生応答: ' + result);
 
   // 結果を解析
   if (result) {
+    // より柔軟な解析: カンマ区切りの数字を探す、または説明文から数字を抽出
+    // パターン1: 直接「カテゴリID,ジャンルID」形式
     var parts = result.split(',');
-    if (parts.length === 2) {
-      var targetCategoryId = parseInt(parts[0].trim(), 10);
-      var targetGenreId = parseInt(parts[1].trim(), 10);
+    var targetCategoryId = null;
+    var targetGenreId = null;
+
+    if (parts.length >= 2) {
+      // 最初の2つの数字を抽出
+      for (var i = 0; i < parts.length; i++) {
+        var num = parseInt(parts[i].trim().replace(/[^\d]/g, ''), 10);
+        if (!isNaN(num)) {
+          if (targetCategoryId === null) {
+            targetCategoryId = num;
+          } else if (targetGenreId === null) {
+            targetGenreId = num;
+            break;
+          }
+        }
+      }
+    }
+
+    // パターン2: 数字が直接含まれている場合（説明文から抽出）
+    if (targetCategoryId === null || targetGenreId === null) {
+      var numberPattern = /\d{3,5}/g;
+      var numbers = result.match(numberPattern);
+      if (numbers && numbers.length >= 2) {
+        targetCategoryId = parseInt(numbers[0], 10);
+        targetGenreId = parseInt(numbers[1], 10);
+        console.log('数字抽出パターンで解析: categoryId=' + targetCategoryId + ', genreId=' + targetGenreId);
+      }
+    }
+
+    if (targetCategoryId !== null && targetGenreId !== null) {
 
       // カテゴリIDが「その他」(199)の場合
       if (targetCategoryId === 199) {
@@ -131,7 +164,11 @@ function getCategory(shopName) {
           }
         }
       }
+    } else {
+      console.log('Gemini応答からカテゴリIDとジャンルIDを抽出できませんでした。応答: ' + result);
     }
+  } else {
+    console.log('Gemini APIがnullを返しました');
   }
 
   // デフォルト: その他 - その他
@@ -191,9 +228,21 @@ function callGeminiApi(prompt) {
 
     // 1. APIにリクエストを送信
     var response = UrlFetchApp.fetch(url, options);
+    var responseCode = response.getResponseCode();
+    var responseText = response.getContentText();
+
+    console.log('Gemini API レスポンスコード: ' + responseCode);
+    console.log('Gemini API レスポンス本文: ' + responseText.substring(0, 500)); // 最初の500文字をログ出力
 
     // 2. 返ってきた結果（文字列）をJSONオブジェクトに変換
-    var json = JSON.parse(response.getContentText());
+    var json;
+    try {
+      json = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error("Gemini API レスポンスのJSON解析失敗: " + parseError.toString());
+      console.error("レスポンス本文全体: " + responseText);
+      return null;
+    }
 
     // 3. エラーが含まれていないかチェック
     if (json.error) {
@@ -203,17 +252,36 @@ function callGeminiApi(prompt) {
 
     // 4. 正しい回答が含まれているかチェックして取り出す
     // 構造: candidates[0] -> content -> parts[0] -> text
-    if (json.candidates && json.candidates.length > 0 && json.candidates[0].content && json.candidates[0].content.parts.length > 0) {
-      // 余分な空白などを削除して返す
-      return json.candidates[0].content.parts[0].text.trim();
+    if (json.candidates && json.candidates.length > 0) {
+      console.log('Gemini candidates数: ' + json.candidates.length);
+
+      if (json.candidates[0].content) {
+        console.log('Gemini content存在: ' + JSON.stringify(json.candidates[0].content));
+
+        if (json.candidates[0].content.parts && json.candidates[0].content.parts.length > 0) {
+          var text = json.candidates[0].content.parts[0].text;
+          console.log('Gemini 抽出テキスト: ' + text);
+          // 余分な空白などを削除して返す
+          return text ? text.trim() : null;
+        } else {
+          console.warn("Gemini partsが空または存在しません");
+          console.warn("candidates[0].content: " + JSON.stringify(json.candidates[0].content));
+        }
+      } else {
+        console.warn("Gemini contentが存在しません");
+        console.warn("candidates[0]: " + JSON.stringify(json.candidates[0]));
+      }
     } else {
       console.warn("Geminiからの回答が空でした");
-      return null;
+      console.warn("JSON全体: " + JSON.stringify(json));
     }
+
+    return null;
 
   } catch (e) {
     // 通信自体が失敗した場合などのエラー処理
     console.error("Gemini Request Failed: " + e.toString());
+    console.error("エラースタック: " + e.stack);
     return null;
   }
 }
