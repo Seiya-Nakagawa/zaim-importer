@@ -27,7 +27,7 @@ const GEMINI_API_ENDPOINT = SCRIPT_PROPERTIES.getProperty('GEMINI_API_ENDPOINT')
 const GEMINI_API_WAIT_MS = 5000;
 // Gemini API パラメータ
 const GEMINI_PARAM_TEMPERATURE = 0.0;
-const GEMINI_PARAM_MAX_TOKENS = 100;
+const GEMINI_PARAM_MAX_TOKENS = 500;
 
 const ZAIM_API_BASE_URL = 'https://api.zaim.net/v2';
 // Zaim API Rate Limit対策の待機時間(ms)
