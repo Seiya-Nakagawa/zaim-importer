@@ -121,20 +121,24 @@ var Parsers = {
       console.log('Block ' + index + ': date=' + date + ', shop=' + shop + ', amount=' + amount);
 
       // 店名と金額が両方取得できた場合のみ登録
-      // ただし「楽天キャッシュ」を含む取引は除外（チャージは登録しない）
-      if (shop && amount && date && shop.indexOf('楽天キャッシュ') === -1) {
+      if (shop && amount && date) {
+        // 楽天キャッシュの場合はZaim登録はしないが、処理済みにはする（ラベル付与のため）
+        var isRakutenCash = shop.indexOf('楽天キャッシュ') !== -1;
+
         results.push({
           shop: shop,
           amount: amount,
-          date: date
+          date: date,
+          skipZaim: isRakutenCash
         });
-        console.log('Added to results');
-      } else {
-        if (shop && shop.indexOf('楽天キャッシュ') !== -1) {
-          console.log('Skipped (楽天キャッシュ charge)');
+
+        if (isRakutenCash) {
+          console.log('Added to results (Rakuten Cash - Skip Zaim)');
         } else {
-          console.log('Skipped (missing required fields)');
+          console.log('Added to results');
         }
+      } else {
+        console.log('Skipped (missing required fields)');
       }
     });
 

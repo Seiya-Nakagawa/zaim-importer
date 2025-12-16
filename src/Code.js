@@ -124,6 +124,8 @@ function main() {
   // 4. カテゴリ判定を実行
   // 店名(shop)を元に、ZaimのカテゴリIDとジャンルIDを決定する
   allResults.forEach(function(item) {
+    if (item.skipZaim) return;
+
     // CategoryHandler.js の関数を呼び出す
     // 戻り値: {categoryId: 数値, genreId: 数値}
     // まずマッピング(SHOP_CATEGORY_MAP)を確認し、なければGemini APIに問い合わせる
@@ -150,6 +152,11 @@ function main() {
   var failCount = 0;
 
   allResults.forEach(function(item) {
+    if (item.skipZaim) {
+      console.log('Zaim登録スキップ: ' + item.shop);
+      return;
+    }
+
     try {
       // 登録処理 (ZaimClient.js)
       zaim.registerPayment(item);
