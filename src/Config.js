@@ -83,17 +83,18 @@ const SHOP_CATEGORY_MAP = {
   'そうてつローゼン': { categoryId: 101, genreId: 10101 }, // 食費 - 食料品
   '湯花楽': { categoryId: 108, genreId: 10801 }, // エンタメ - レジャー
   'ＦＷＤ生命保険': { categoryId: 110, genreId: 11003 }, // 医療・保険 - 生命保険
-  'ﾓﾊﾞｲﾙﾊﾟｽﾓﾁﾔ-ｼﾞ': { categoryId: 103, genreId: 10301 }, // 交通 - 電車
-  'ｵﾌﾛﾉｵｳｻﾏｴﾋﾞﾅﾃﾝ': { categoryId: 108, genreId: 10801 }, // エンタメ - レジャー
+  'ﾓﾊﾞｲﾙﾊﾟｽﾓﾁﾔ-ｼﾞ': { categoryId: 199, genreId: 19999 }, // 交通 - 電車
+  'ｵﾌﾛﾉｵｳｻﾏｴﾋﾞﾅﾃﾝ': { categoryId: 199, genreId: 19999 }, // その他
   'エルピオ': { categoryId: 105, genreId: 10503 }, // 水道・光熱 - 電気料金
   'ｽｽﾞﾗﾝ': { categoryId: 101, genreId: 10105 }, // 食費 - 食料品
-  'ﾒｶﾞﾄﾞﾝｷﾎｰﾃ': { categoryId: 199, genreId: 19999 }, // その他	※食費と日用雑貨が両方あるため、手動でカテゴリ設定
+  'ﾒｶﾞﾄﾞﾝｷﾎｰﾃ': { categoryId: 199, genreId: 19999 }, // その他
   '日本郵便': { categoryId: 104, genreId: 10406 }, // 通信 - 切手・はがき
   'ｺｽﾓｾｷﾕ': { categoryId: 112, genreId: 11201 }, // クルマ - ガソリン
   '楽天ブックス': { categoryId: 199, genreId: 19904 }, // その他 - 立替金
   'ｼｮﾃﾝ': { categoryId: 199, genreId: 19999 }, // その他 - その他
   'APPLE COM BILL': { categoryId: 104, genreId: 10401 }, // 通信 - 携帯電話料金
   'ﾋﾞﾖｳｼﾂ': { categoryId: 111, genreId: 11105 }, // 美容・衣服 - 美容院
+  'ＮＵＲＯ光': { categoryId: 104, genreId: 10403 }, // 通信 - インターネット関連費
 };
 
 // カテゴリ名とZaimのID/ジャンルIDのマッピング
