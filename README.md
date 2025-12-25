@@ -17,7 +17,20 @@ Gmailに着信する決済サービスの利用通知メール（楽天Pay、楽
 ### 1. Google Apps Script プロジェクトの作成
 
 1. Google Drive上で新規 GAS プロジェクトを作成します。
-2. `src/` 配下のファイルを GAS エディタにコピー（または `clasp push`）します。
+2. `.clasp.json` の `scriptId` を作成したプロジェクトのものに書き換えます。
+3. 以下のコマンドを使用して、ローカルのファイルを GAS プロジェクトに反映させます。
+
+#### ログイン
+
+```powershell
+npx @google/clasp login
+```
+
+#### プッシュ (アップロード)
+
+```powershell
+npx @google/clasp push
+```
 
 ### 2. ライブラリの導入
 
