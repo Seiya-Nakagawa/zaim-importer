@@ -122,18 +122,19 @@ var Parsers = {
 
       // 店名と金額が両方取得できた場合のみ登録
       if (shop && amount && date) {
-        // 楽天キャッシュの場合はZaim登録はしないが、処理済みにはする（ラベル付与のため）
-        var isRakutenCash = shop.indexOf('楽天キャッシュ') !== -1;
+        // Zaim登録をスキップする条件（楽天キャッシュ、楽天証券投信積立など）
+        // 処理済みラベルは付与したいため、結果には含めるが skipZaim フラグを立てる
+        var skipZaim = (shop.indexOf('楽天キャッシュ') !== -1) || (shop.indexOf('楽天証券投信積立') !== -1);
 
         results.push({
           shop: shop,
           amount: amount,
           date: date,
-          skipZaim: isRakutenCash
+          skipZaim: skipZaim
         });
 
-        if (isRakutenCash) {
-          console.log('Added to results (Rakuten Cash - Skip Zaim)');
+        if (skipZaim) {
+          console.log('Added to results (Skip Zaim: ' + shop + ')');
         } else {
           console.log('Added to results');
         }
