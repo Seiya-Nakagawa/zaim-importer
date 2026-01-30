@@ -21,7 +21,9 @@ const SEARCH_TARGET_DAYS_AGO = parseInt(SCRIPT_PROPERTIES.getProperty('SEARCH_TA
 // プロパティ 'DELETE_TARGET_DAYS_AGO' が設定されていればそれを使用
 const DELETE_TARGET_DAYS_AGO = parseInt(SCRIPT_PROPERTIES.getProperty('DELETE_TARGET_DAYS_AGO'), 10);
 
-// Gemini API Endpoint
+// Gemini API Model ID
+const GEMINI_MODEL_ID = SCRIPT_PROPERTIES.getProperty('GEMINI_MODEL_ID') || 'gemini-3-flash-preview';
+// Gemini API Endpoint (Deprecated: Use GEMINI_MODEL_ID if possible)
 const GEMINI_API_ENDPOINT = SCRIPT_PROPERTIES.getProperty('GEMINI_API_ENDPOINT');
 // Gemini API Rate Limit対策の待機時間(ms)
 const GEMINI_API_WAIT_MS = 5000;

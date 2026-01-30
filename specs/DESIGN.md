@@ -25,7 +25,7 @@ graph LR
 | **プラットフォーム** | Google Apps Script | 実行環境 |
 | **言語** | JavaScript (ES6) | 開発言語 |
 | **メール** | GmailApp | メール取得・操作 |
-| **AI** | Gemini API (gemini-2.0-flash) | カテゴリ自動判定 |
+| **AI** | Gemini API (gemini-3-flash-preview) | カテゴリ自動判定 |
 | **HTTP通信** | UrlFetchApp | APIリクエスト |
 | **認証** | OAuth1 ライブラリ | Zaim API認証 (OAuth 1.0a) |
 

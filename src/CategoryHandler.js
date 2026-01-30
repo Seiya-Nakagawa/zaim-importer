@@ -191,12 +191,13 @@ function callGeminiApi(prompt) {
     return null;
   }
 
-  if (!GEMINI_API_ENDPOINT) {
-    console.error("GEMINI_API_ENDPOINT is not set in Script Properties.");
-    return null;
+  var url;
+  if (GEMINI_API_ENDPOINT && GEMINI_API_ENDPOINT.indexOf('https://') === 0) {
+    url = GEMINI_API_ENDPOINT + apiKey;
+  } else {
+    // モデルIDからエンドポイントを自動構成
+    url = "https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_MODEL_ID + ":generateContent?key=" + apiKey;
   }
-
-  var url = GEMINI_API_ENDPOINT + apiKey;
 
   // リクエストペイロードの作成
   var payload = {
