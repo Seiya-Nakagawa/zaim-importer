@@ -101,6 +101,7 @@ const SHOP_CATEGORY_MAP = {
   'ロリアン洋菓子': { categoryId: 101, genreId: 10199 }, // 食費 - その他
   'ＥＴＣカード': { categoryId: 112, genreId: 11207 }, // クルマ - 高速料金
   'タイムズ': { categoryId: 112, genreId: 11202 }, // クルマ - 駐車場
+  'ｳｴﾙﾊﾟ-ｸ': { categoryId: 102, genreId: 10201 }, // 日用雑貨 - 医薬品
 };
 
 // カテゴリ名とZaimのID/ジャンルIDのマッピング
